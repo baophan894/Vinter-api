@@ -7,6 +7,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './modules/auth/auth.module';
 import { SpeechModule } from './modules/speech/speech.module';
 import { AiModule } from './modules/ai/ai.module';
+import { RecruitmentModule } from './modules/recruitment/recruitment.module';
 
 
 @Module({
@@ -25,7 +26,7 @@ import { AiModule } from './modules/ai/ai.module';
     AuthModule,
     SpeechModule,
     AiModule,
-   
+    RecruitmentModule,
   ],
   controllers: [AppController],
   providers: [AppService],
