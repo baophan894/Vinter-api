@@ -1,12 +1,16 @@
-import { Body, Controller, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UploadedFile, UseInterceptors, Res } from '@nestjs/common';
 import { ApiTags, ApiBody, ApiOperation, ApiConsumes } from '@nestjs/swagger';
 import { AiService } from './ai.service';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { InterviewService } from '../interview/interview.service';
+import { Response } from 'express';
 
 @Controller('ai')
 @ApiTags('AI')
 export class AiController {
-    constructor(private readonly aiService: AiService) { }
+    constructor(private readonly aiService: AiService,
+        private readonly interviewService: InterviewService,
+    ) { }
 
     @Post('generate-checklist')
     @ApiOperation({ summary: 'Gửi JD để nhận checklist chuẩn bị phỏng vấn' })
@@ -25,21 +29,31 @@ export class AiController {
         return this.aiService.generateChecklist(body.jd);
     }
 
-    @Post('generate-questions')
-    @ApiOperation({ summary: 'Gửi JD để AI sinh câu hỏi phỏng vấn phù hợp' })
+    @Post('interview-session')
+    @ApiOperation({ summary: 'Tạo câu hỏi phỏng vấn theo chế độ (basic/advanced/challenge)' })
+    @ApiConsumes('multipart/form-data')
     @ApiBody({
         schema: {
             type: 'object',
             properties: {
-                jd: {
+                jd: { type: 'string' },
+                mode: {
                     type: 'string',
-                    example: 'We are hiring a Node.js backend developer...',
+                    enum: ['basic', 'advanced', 'challenge'],
+                },
+                cv: {
+                    type: 'string',
+                    format: 'binary',
                 },
             },
         },
     })
-    async generateInterviewQuestions(@Body() body: { jd: string }) {
-        return this.aiService.generateInterviewQuestions(body.jd);
+    @UseInterceptors(FileInterceptor('cv'))
+    async generateInterviewByMode(
+        @UploadedFile() file: Express.Multer.File,
+        @Body() body: { jd: string; mode: 'basic' | 'advanced' | 'challenge' },
+    ) {
+        return this.aiService.generateInterviewQuestionsFromJDAndCVByMode(file.buffer, body.jd, body.mode);
     }
 
 
@@ -90,6 +104,38 @@ export class AiController {
         @Body() body: { jd: string },
     ) {
         return this.aiService.analyzeCvWithJD(file.buffer, body.jd);
+    }
+
+    @Post('start-interview')
+    @UseInterceptors(FileInterceptor('cv'))
+    @ApiConsumes('multipart/form-data')
+    @ApiBody({
+        schema: {
+            type: 'object',
+            properties: {
+                jd: { type: 'string' },
+                mode: { type: 'string', enum: ['basic', 'advanced', 'challenge'] },
+                cv: { type: 'string', format: 'binary' },
+            },
+        },
+    })
+    async startInterview(
+        @UploadedFile() file: Express.Multer.File,
+        @Body() body: { jd: string; mode: 'basic' | 'advanced' | 'challenge' },
+    ) {
+        return this.interviewService.createInterview(file.buffer, body.jd, body.mode);
+    }
+
+    @Post('answer')
+    async saveAnswer(@Body() body: { sessionId: string; question: string; answer: string }) {
+        return this.interviewService.saveAnswer(body.sessionId, body.question, body.answer);
+    }
+    @Get('export/:sessionId')
+    async exportPdf(@Param('sessionId') sessionId: string, @Res({ passthrough: true }) res: Response) {
+        const buffer = await this.interviewService.generatePdfReport(sessionId);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="interview-${sessionId}.pdf"`);
+        res.send(buffer);
     }
 
 }

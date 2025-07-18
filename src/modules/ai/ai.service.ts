@@ -3,6 +3,9 @@ import axios from 'axios';
 import * as pdfParse from 'pdf-parse';
 @Injectable()
 export class AiService {
+    generateInterviewQuestions(jd: string) {
+        throw new Error('Method not implemented.');
+    }
     async generateChecklist(jd: string): Promise<{ checklist: string[] }> {
         const prompt = `
 Tôi là người đang chuẩn bị đi phỏng vấn cho vị trí sau đây:
@@ -36,13 +39,41 @@ Hãy liệt kê danh sách các việc cần làm để chuẩn bị phỏng v�
         return { checklist };
     }
 
-    async generateInterviewQuestions(jd: string): Promise<{ checklist: string[] }> {
+    static questionCountByMode = {
+        basic: 5,
+        advanced: 10,
+        challenge: 15,
+    };
+
+    async generateInterviewQuestionsFromJDAndCVByMode(
+        fileBuffer: Buffer,
+        jd: string,
+        mode: keyof typeof AiService.questionCountByMode,
+    ): Promise<{ questions: string[]; type: string }> {
+        const pdfData = await pdfParse(fileBuffer);
+        const cvText = pdfData.text.trim();
+        if (!cvText) {
+            throw new Error('CV không hợp lệ hoặc không đọc được nội dung.');
+        }
+
+        const count = AiService.questionCountByMode[mode];
+
         const prompt = `
-Bạn là một chuyên gia tuyển dụng kỹ thuật. Dưới đây là bản mô tả công việc:
+Bạn là một chuyên gia tuyển dụng kỹ thuật.
 
-"""${jd}"""
+JD:
+"""
+${jd}
+"""
 
-Hãy tạo danh sách các câu hỏi có thể được hỏi trong buổi phỏng vấn kỹ thuật, liên quan trực tiếp đến JD trên. Trình bày dưới dạng danh sách gạch đầu dòng.
+CV của ứng viên:
+"""
+${cvText}
+"""
+
+Hãy tạo khoảng ${count} câu hỏi phỏng vấn ${mode === 'basic' ? 'cơ bản (kinh nghiệm, kiến thức nền)' : mode === 'advanced' ? 'chuyên sâu (thuật toán, tình huống)' : 'thử thách (case thực tế, tư duy)'}, dựa vào JD và CV.
+
+Trình bày danh sách gạch đầu dòng. Nếu có thể, hãy ưu tiên hỏi về các dự án cụ thể có trong CV.
 `;
 
         const res = await axios.post(
@@ -61,14 +92,16 @@ Hãy tạo danh sách các câu hỏi có thể được hỏi trong buổi ph�
 
         const content = res.data.choices[0].message.content as string;
 
-        const checklist = content
+        const questions = content
             .split('\n')
             .filter((line) => line.trim().startsWith('-') || line.trim().startsWith('•'))
             .map((line) => line.replace(/^[-•]\s*/, '').trim());
 
-        return { checklist };
+        return {
+            questions,
+            type: mode,
+        };
     }
-
 
     async generateStudyPlan(checklist: string[]): Promise<{ sections: { title: string, items: string[] }[] }> {
         const joinedChecklist = checklist.map((item, i) => `${i + 1}. ${item}`).join('\n');
@@ -125,40 +158,54 @@ Yêu cầu:
     const cvText = (await pdfParse(fileBuffer)).text;
 
     const prompt = `
-Bạn là chuyên gia tuyển dụng. Hãy so sánh nội dung sau:
+Bạn là chuyên gia tuyển dụng.
+
+Hãy đánh giá mức độ phù hợp của ứng viên dựa trên:
 
 **Job Description (JD):**
 ${jd}
 
-**CV:**
+**CV của ứng viên:**
 ${cvText}
 
-Trả lời dưới dạng JSON với 2 phần:
+Trả lời dưới dạng JSON gồm 3 phần:
 - "positivePoints": liệt kê các điểm mạnh trong CV phù hợp với JD
-- "improvementAreas": liệt kê các điểm CV còn thiếu hoặc cần cải thiện để phù hợp hơn với JD
+- "improvementAreas": liệt kê các điểm còn thiếu hoặc cần cải thiện
+- "score": số điểm từ 0 đến 100 đánh giá mức độ phù hợp tổng thể, kèm mô tả ngắn (tối đa 1-2 câu)
+
+Ví dụ:
+{
+  "positivePoints": ["Có kinh nghiệm Node.js", "Đã làm việc với MongoDB"],
+  "improvementAreas": ["Thiếu kỹ năng quản lý dự án", "Chưa có chứng chỉ AWS"],
+  "score": {
+    "value": 78,
+    "explanation": "Ứng viên đáp ứng được phần lớn yêu cầu nhưng thiếu kinh nghiệm triển khai hệ thống lớn."
+  }
+}
 `;
 
     const res = await axios.post(
-      'https://openrouter.ai/api/v1/chat/completions',
-      {
-        model: 'openai/gpt-3.5-turbo',
-        messages: [{ role: 'user', content: prompt }],
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json',
+        'https://openrouter.ai/api/v1/chat/completions',
+        {
+            model: 'openai/gpt-3.5-turbo',
+            messages: [{ role: 'user', content: prompt }],
         },
-      },
+        {
+            headers: {
+                Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+                'Content-Type': 'application/json',
+            },
+        },
     );
 
     const content = res.data.choices[0].message.content;
 
     try {
-      return JSON.parse(content);
+        return JSON.parse(content);
     } catch (e) {
-      return { raw: content }; // fallback nếu không phải JSON
+        return { raw: content };
     }
-  }
+}
+
 
 }
