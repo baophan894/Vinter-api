@@ -1,9 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import * as pdfParse from 'pdf-parse';
+import { RecruitmentService } from '../recruitment/recruitment.service';
+import { User, UserSchema } from '../user/entities/user.entity';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { Cv } from '../cv/entities/cv.entity';
 @Injectable()
 export class AiService {
+  
+    constructor(
+  private readonly recruitmentService: RecruitmentService,
+      @InjectModel(Cv.name) private cVModel: Model<Cv>,
+) {}
+
     generateInterviewQuestions(jd: string) {
+        
         throw new Error('Method not implemented.');
     }
     async generateChecklist(jd: string): Promise<{ checklist: string[] }> {
@@ -206,6 +218,77 @@ Ví dụ:
         return { raw: content };
     }
 }
+
+async recommendJobsBasedOnUserCv(userId: string): Promise<any> {
+  // 1. Lấy CV URL từ user
+      const user = await this.cVModel.findById(userId).exec();
+      console.log('User CV URL:', user);
+
+  // 2. Tải file CV từ URL
+  
+
+  // 4. Lấy danh sách công việc
+  const jobs = await this.recruitmentService.findAll();
+
+  // 5. Tạo prompt
+  const prompt = `
+Bạn là chuyên gia tuyển dụng.
+
+Dưới đây là CV ứng viên:
+"""
+${user?.content || 'Không có CV.'}
+"""
+
+Và danh sách các công việc:
+${jobs.map((job, index) => `\n${index + 1}. ${job.title} tại ${job.company}\nJD: ${job.description || job.requirements || job.keyResponsibilities}\n`).join('')}
+
+Dựa trên nội dung CV và mô tả các công việc, hãy chọn ra những công việc phù hợp nhất. Trả về dạng JSON như sau:
+
+[
+  {
+    "jobIndex": 1,
+    "jobTitle": "Frontend Developer",
+    "company": "FPT Software",
+    "matchScore": 87,
+    "reason": "Ứng viên có kinh nghiệm React và Tailwind, phù hợp với yêu cầu."
+  },
+  ...
+]
+
+Chỉ liệt kê tối đa 5 công việc phù hợp nhất, sắp xếp theo điểm giảm dần.
+`;
+
+  // 6. Gửi tới AI
+  const res = await axios.post(
+    'https://openrouter.ai/api/v1/chat/completions',
+    {
+      model: 'openai/gpt-3.5-turbo',
+      messages: [{ role: 'user', content: prompt }],
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+    },
+  );
+
+  const content = res.data.choices[0].message.content;
+
+  try {
+    const recommendations = JSON.parse(content);
+    // Gắn thêm job details từ index
+    const enriched = recommendations.map((r) => ({
+      ...r,
+      job: jobs[r.jobIndex - 1] || null,
+    }));
+    return enriched;
+  } catch (e) {
+    return { raw: content, error: 'Invalid JSON format from AI.' };
+  }
+}
+
+
 
 
 }
