@@ -12,6 +12,27 @@ export class AiController {
         private readonly interviewService: InterviewService,
     ) { }
 
+    
+   @Post('recommend')
+@ApiOperation({ summary: 'Suggest jobs based on user CV (by userId)' })
+@ApiBody({
+  schema: {
+    type: 'object',
+    properties: {
+      userId: { type: 'string' },
+    },
+    required: ['userId'],
+  },
+})
+async recommendJobs(
+  @Body('userId') userId: string,
+): Promise<any> {
+  return this.aiService.recommendJobsBasedOnUserCv(userId);
+}
+
+
+    
+
     @Post('generate-checklist')
     @ApiOperation({ summary: 'Gửi JD để nhận checklist chuẩn bị phỏng vấn' })
     @ApiBody({

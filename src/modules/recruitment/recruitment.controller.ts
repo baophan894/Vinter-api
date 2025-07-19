@@ -8,13 +8,13 @@ import { Roles } from 'src/decorators/role.decorator';
 import { AuthGuard } from '@nestjs/passport';
 
 @Controller('recruitment')
-@ApiBearerAuth('token')
+// @ApiBearerAuth('token')
 export class RecruitmentController {
  constructor(private readonly recruitmentService: RecruitmentService) {}
 
   @Post()
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('Admin', 'HR')
+  // @UseGuards(AuthGuard('jwt'), RolesGuard)
+  // @Roles('Admin', 'HR')
   @ApiOperation({ summary: 'Đăng bài tuyển dụng' })
   @ApiBody({
       schema: {
