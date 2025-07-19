@@ -9,8 +9,8 @@ import { Model } from 'mongoose';
 export class RecruitmentService {
   constructor(@InjectModel(Recruitment.name) private recruitmentModel: Model<Recruitment>) {}
 
-  async create(createDto: CreateRecruitmentDto, userId: string): Promise<Recruitment> {
-    return this.recruitmentModel.create({ ...createDto, createdBy: userId });
+  async create(createDto: CreateRecruitmentDto): Promise<Recruitment> {
+    return this.recruitmentModel.create({ ...createDto, createdAt: new Date() });
   }
 
   async findAll(): Promise<Recruitment[]> {

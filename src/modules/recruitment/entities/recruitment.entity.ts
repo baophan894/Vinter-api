@@ -30,7 +30,7 @@ export class Recruitment{
   @Prop()
   deadline: Date;
 
-  @Prop({ required: true })
+  @Prop({ required: false })
   createdBy: string; // userId hoặc reference đến User
 
   @Prop({ default: true })
