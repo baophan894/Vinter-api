@@ -25,6 +25,9 @@ export class Cv {
 
     @Prop({ type: String })
     content: string;
+
+    @Prop({ required: true })
+    createdBy: string;
 }
 
 export const CvSchema = SchemaFactory.createForClass(Cv);

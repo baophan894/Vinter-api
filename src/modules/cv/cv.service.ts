@@ -12,7 +12,7 @@ export class CvService {
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
-  async uploadCv(file: Express.Multer.File): Promise<Cv> {
+  async uploadCv(file: Express.Multer.File, userId: string): Promise<Cv> {
     const filename = file.originalname.replace(/\.[^/.]+$/, ''); // remove extension
     const url = (await this.cloudinaryService.uploadPdfBuffer(file.buffer, filename, 'cv')).url;
     const context = (await this.cloudinaryService.uploadPdfBuffer(file.buffer, filename, 'cv')).content;
@@ -21,6 +21,7 @@ export class CvService {
       filename: file.originalname,
       url: url,
       content: context,
+      createdBy: userId,
     });
 
     return createdCv.save();
@@ -34,5 +35,8 @@ export class CvService {
     return this.cvModel.findByIdAndDelete(id);
   }
 
- 
+  async findByUserId(id: string): Promise<Cv | null> {
+    return this.cvModel.findOne({ createdBy: id }).exec();
+  }
+
 }
