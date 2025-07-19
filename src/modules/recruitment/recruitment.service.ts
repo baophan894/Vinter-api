@@ -4,6 +4,7 @@ import { UpdateRecruitmentDto } from './dto/update-recruitment.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Recruitment } from './entities/recruitment.entity';
 import { Model } from 'mongoose';
+import { Request } from 'express';
 
 @Injectable()
 export class RecruitmentService {

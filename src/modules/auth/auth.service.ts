@@ -24,10 +24,11 @@ export class AuthService {
         email: emails[0].value,
         name: displayName,
         photo: photos[0].value,
+        role: 'User', 
       });
     }
 
-    const payload = { sub: user._id, email: user.email };
+    const payload = { sub: user._id, email: user.email, role: user.role };
     const token = this.jwtService.sign(payload);
 
     return { token, user };

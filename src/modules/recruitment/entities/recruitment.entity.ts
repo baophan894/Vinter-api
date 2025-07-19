@@ -17,15 +17,36 @@ export type UserDocument = HydratedDocument<Recruitment>
 export class Recruitment{
   @Prop({ required: true })
   title: string;
-
+  
   @Prop({ required: true })
   description: string;
+  
+  @Prop({ required: true })
+  company: string;
+
+  @Prop({ required: true })
+  employmentType: string; // e.g., Full-time, Part-time, Contract
+
+  @Prop({ required: true })
+  location: string; // e.g., Remote, On-site, Hybrid
+
+  @Prop({ required: true })
+  experience: string; // e.g., Entry-level, Mid-level, Senior, Minimum 1 years
+
+  @Prop({ required: true })
+  salaryRange: string; // e.g., 5000-7000 USD/month
+
+  @Prop({ required: true })
+  keyResponsibilities: string;
 
   @Prop()
   requirements: string;
 
   @Prop()
   benefits: string;
+
+  @Prop({ required: false })
+  companyValues: string;
 
   @Prop()
   deadline: Date;
