@@ -13,11 +13,13 @@ export class AuthController {
     
     @Get('google')
     @UseGuards(AuthGuard('google'))
-    async googleAuth(@Req() req) {}
+    async googleAuth(@Req() req) {
+        console.log('Google Auth called');
+    }
 
     @Get('google/callback')
     @UseGuards(AuthGuard('google'))
-    async googleAuthRedirect(@Req() req) {
+    async googleAuthRedirect(@Req() req, @Res() res: Response) {
         return req.user;
     }
 

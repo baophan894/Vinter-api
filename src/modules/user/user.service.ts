@@ -19,4 +19,24 @@ export class UserService {
     const newUser = new this.userModel(userData);
     return newUser.save();
   }
+
+  async findById(id: string): Promise<UserDocument | null> {
+    return this.userModel.findById(id).exec();
+  }
+
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<UserDocument | null> {
+    return this.userModel.findByIdAndUpdate(id, updateUserDto, { new: true }).exec();
+  }
+
+  async findAll(): Promise<UserDocument[]> {
+    return this.userModel.find().exec();
+  }
+
+  async delete(id: string): Promise<UserDocument | null> {
+    return this.userModel.findByIdAndDelete(id).exec();
+  }
+
+  async findByEmail(email: string): Promise<UserDocument | null> {
+    return this.userModel.findOne({ email }).exec();
+  }
 }

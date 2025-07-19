@@ -8,6 +8,9 @@ import { AuthModule } from './modules/auth/auth.module';
 import { SpeechModule } from './modules/speech/speech.module';
 import { AiModule } from './modules/ai/ai.module';
 import { RecruitmentModule } from './modules/recruitment/recruitment.module';
+import { User } from './modules/user/entities/user.entity';
+import { UserModule } from './modules/user/user.module';
+import { CvModule } from './modules/cv/cv.module';
 
 
 @Module({
@@ -27,6 +30,8 @@ import { RecruitmentModule } from './modules/recruitment/recruitment.module';
     SpeechModule,
     AiModule,
     RecruitmentModule,
+    UserModule,
+    CvModule,
   ],
   controllers: [AppController],
   providers: [AppService],

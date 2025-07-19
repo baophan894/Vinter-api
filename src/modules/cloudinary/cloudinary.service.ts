@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { v2 as cloudinary } from 'cloudinary';
 import * as streamifier from 'streamifier';
+import * as pdfParse from 'pdf-parse';
 
 @Injectable()
 export class CloudinaryService {
@@ -30,5 +31,28 @@ export class CloudinaryService {
 
       streamifier.createReadStream(buffer).pipe(uploadStream);
     });
+  }
+
+   async uploadPdfBuffer(buffer: Buffer, filename: string, folder = 'cv'): Promise<{ url: string; content: string }> {
+    const pdfText = await pdfParse(buffer).then(data => data.text);
+
+    const url = await new Promise<string>((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder,
+          public_id: filename,
+          resource_type: 'raw',
+          format: 'pdf',
+        },
+        (error, result) => {
+          if (error) return reject(error);
+          if (!result?.secure_url) return reject(new Error('Upload failed'));
+          resolve(result.secure_url);
+        },
+      );
+      streamifier.createReadStream(buffer).pipe(uploadStream);
+    });
+
+    return {url, content: pdfText };
   }
 }
